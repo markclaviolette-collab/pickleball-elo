@@ -611,8 +611,21 @@ function renderServe(){
 
 /* ---------------- other views ---------------- */
 function fillSelects(){
-  const opts='<option value="">—</option>'+db.players.map(p=>`<option>${esc(p)}</option>`).join('');
-  document.querySelectorAll('.pick').forEach(s=>{const v=s.value;s.innerHTML=opts;s.value=v;});
+  // Exclude anyone already picked in one of the OTHER three slots, so the
+  // same player can't be selected twice in one match. Ignore selects that
+  // are currently hidden (Player 2 in singles mode) — a leftover value from
+  // a previous doubles selection shouldn't block that player elsewhere.
+  // Each select keeps its own current value as an option so it doesn't
+  // blank itself out while you're mid-edit.
+  const picks=Array.from(document.querySelectorAll('.pick')).filter(s=>s.offsetParent!==null);
+  const chosen=picks.map(s=>s.value).filter(Boolean);
+  document.querySelectorAll('.pick').forEach(s=>{
+    const mine=s.value;
+    const opts='<option value="">—</option>'+db.players
+      .filter(p=>p===mine || !chosen.includes(p))
+      .map(p=>`<option${p===mine?' selected':''}>${esc(p)}</option>`).join('');
+    s.innerHTML=opts;
+  });
 }
 function renderChips(){
   $('chips').innerHTML=db.players.length
@@ -776,7 +789,7 @@ $('doImport').onclick=async()=>{
 $('format').onchange=syncFormat;
 $('rankMode').onchange=renderRank;
 $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
-document.querySelectorAll('.pick').forEach(s=>s.onchange=livePreview);
+document.querySelectorAll('.pick').forEach(s=>s.onchange=()=>{ fillSelects(); livePreview(); });
 $('recorder').oninput=e=>{
   localStorage.setItem('pbelo_me',e.target.value);
 };
