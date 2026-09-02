@@ -140,11 +140,11 @@
 <nav>
   <button data-tab="match" class="on">Record Match</button>
   <button data-tab="rank">Rankings</button>
-  <button data-tab="serve">Serve Analysis</button>
+  <button data-tab="serve" data-admin-only>Serve Analysis</button>
   <button data-tab="hist">History</button>
   <button data-tab="players">Players</button>
-  <button data-tab="log">Activity</button>
-  <button data-tab="backup">Backups</button>
+  <button data-tab="log" data-admin-only>Activity</button>
+  <button data-tab="backup" data-admin-only>Backups</button>
   <button data-tab="about">How it works</button>
 </nav>
 
@@ -383,6 +383,19 @@ function applyRole(){
   $('adminBox').hidden=!isAdmin();
   $('useMov').disabled=!isAdmin();
   $('elevate').hidden=isAdmin();
+  // Friends only need Record Match / Rankings / History / Players / How it
+  // works. Serve Analysis, Activity, and Backups are admin-only — friends
+  // can't act on any of them, so showing the tab just invites a confusing
+  // "needs admin" error. Hide the nav button, not just the content.
+  document.querySelectorAll('nav button[data-admin-only]').forEach(b=>{
+    b.hidden=!isAdmin();
+  });
+  // If the active tab just became hidden (e.g. an admin session expired),
+  // fall back to Record Match rather than leaving an orphaned admin view up.
+  const activeBtn=document.querySelector('nav button.on');
+  if(!isAdmin() && activeBtn && activeBtn.hasAttribute('data-admin-only')){
+    document.querySelector('nav button[data-tab="match"]').click();
+  }
   renderAll();
 }
 const gmsg=(t,cls='')=>{ $('gateMsg').className=cls; $('gateMsg').textContent=t||''; };
