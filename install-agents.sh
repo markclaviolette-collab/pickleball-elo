@@ -17,8 +17,8 @@ DRY=0
 
 PORT="${PORT:-8777}"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-LABEL_SRV="com.allan.pickleball.server"
-LABEL_TUN="com.allan.pickleball.tunnel"
+LABEL_SRV="com.pickleball.elo.server"
+LABEL_TUN="com.pickleball.elo.tunnel"
 AGENTS="$HOME/Library/LaunchAgents"
 LOGS="$APP_DIR/logs"
 UID_NUM="$(id -u)"

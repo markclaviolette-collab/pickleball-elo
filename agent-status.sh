@@ -6,8 +6,8 @@ PORT="${PORT:-8777}"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOGS="$APP_DIR/logs"
 U="$(id -u)"
-SRV="com.allan.pickleball.server"
-TUN="com.allan.pickleball.tunnel"
+SRV="com.pickleball.elo.server"
+TUN="com.pickleball.elo.tunnel"
 
 ok(){ printf '  \033[32m✓\033[0m %s\n' "$1"; }
 bad(){ printf '  \033[31m✗\033[0m %s\n' "$1"; }

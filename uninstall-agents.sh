@@ -4,7 +4,7 @@ set -uo pipefail
 U="$(id -u)"
 AGENTS="$HOME/Library/LaunchAgents"
 
-for L in com.allan.pickleball.server com.allan.pickleball.tunnel; do
+for L in com.pickleball.elo.server com.pickleball.elo.tunnel; do
   if launchctl print "gui/$U/$L" >/dev/null 2>&1; then
     launchctl bootout "gui/$U/$L" 2>/dev/null && echo "✓ stopped $L"
   else
