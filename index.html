@@ -164,6 +164,11 @@
         <div><label>Recorded by <span style="color:var(--blue)">*</span></label><input id="recorder" placeholder="your name" required></div>
       </div>
 
+      <div id="playerFilterWrap" hidden style="margin-bottom:10px">
+        <label>Filter players</label>
+        <input id="playerFilter" placeholder="Type a name to narrow the dropdowns below…" autocomplete="off">
+      </div>
+
       <div class="row">
         <div class="side serving" id="sideA">
           <h3>Side A</h3>
@@ -611,19 +616,34 @@ function renderServe(){
 
 /* ---------------- other views ---------------- */
 function fillSelects(){
+  // Show the filter box only once it's actually useful — small groups
+  // shouldn't see extra UI they don't need.
+  const FILTER_THRESHOLD=8;
+  $('playerFilterWrap').hidden = db.players.length < FILTER_THRESHOLD;
+
+  const filter=($('playerFilter').value||'').trim().toLowerCase();
+
   // Exclude anyone already picked in one of the OTHER three slots, so the
   // same player can't be selected twice in one match. Ignore selects that
   // are currently hidden (Player 2 in singles mode) — a leftover value from
   // a previous doubles selection shouldn't block that player elsewhere.
-  // Each select keeps its own current value as an option so it doesn't
-  // blank itself out while you're mid-edit.
-  const picks=Array.from(document.querySelectorAll('.pick')).filter(s=>s.offsetParent!==null);
-  const chosen=picks.map(s=>s.value).filter(Boolean);
-  document.querySelectorAll('.pick').forEach(s=>{
+  const picks=Array.from(document.querySelectorAll('.pick'));
+  const visiblePicks=picks.filter(s=>s.offsetParent!==null);
+  const chosen=visiblePicks.map(s=>s.value).filter(Boolean);
+
+  picks.forEach(s=>{
     const mine=s.value;
-    const opts='<option value="">—</option>'+db.players
-      .filter(p=>p===mine || !chosen.includes(p))
-      .map(p=>`<option${p===mine?' selected':''}>${esc(p)}</option>`).join('');
+    let names;
+    if(mine){
+      // Already has a selection — show just that one. The filter only
+      // narrows the list while a slot is still empty and being chosen.
+      names=[mine];
+    }else{
+      names=db.players.filter(p=>
+        !chosen.includes(p) && (!filter || p.toLowerCase().includes(filter)));
+    }
+    const opts='<option value="">—</option>'+
+      names.map(p=>`<option${p===mine?' selected':''}>${esc(p)}</option>`).join('');
     s.innerHTML=opts;
   });
 }
@@ -790,6 +810,7 @@ $('format').onchange=syncFormat;
 $('rankMode').onchange=renderRank;
 $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
 document.querySelectorAll('.pick').forEach(s=>s.onchange=()=>{ fillSelects(); livePreview(); });
+$('playerFilter').oninput=()=>fillSelects();
 $('recorder').oninput=e=>{
   localStorage.setItem('pbelo_me',e.target.value);
 };
