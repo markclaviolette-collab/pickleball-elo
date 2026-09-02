@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pickleball">
+<meta name="theme-color" content="#0071E3">
+<title>Pickleball Elo</title>
+<style>
+  :root{
+    --navy:#0A2540; --blue:#0071E3; --cyan:#00C7BE; --ink:#1D1D1F;
+    --bg:#F5F5F7; --card:#FFFFFF; --line:#E5E5EA; --dim:#6E6E73;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#000; --card:#1C1C1E; --ink:#F5F5F7; --line:#2C2C2E; --dim:#98989D; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 -apple-system,"SF Pro Text","Helvetica Neue",sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:linear-gradient(100deg,var(--cyan),var(--blue));color:#fff;padding:24px}
+  header h1{margin:0;font-size:25px;font-weight:600;letter-spacing:-.02em}
+  header .sub{margin-top:4px;opacity:.9;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:#fff;display:inline-block;margin-right:5px}
+  .dot.off{background:#FF9F0A}
+  nav{display:flex;gap:2px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;overflow-x:auto}
+  nav button{border:0;background:transparent;color:var(--dim);font:600 14px inherit;padding:8px 13px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  nav button.on{background:var(--blue);color:#fff}
+  main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  h2{font-size:17px;margin:0 0 14px;font-weight:600}
+  h3{font-size:12px;margin:18px 0 8px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px}
+  input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:130px}
+  .side{border:1px solid var(--line);border-radius:12px;padding:14px;flex:1;min-width:250px}
+  .side.serving{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}
+  .side h3{margin-top:0}
+  button.primary{background:var(--blue);color:#fff;border:0;padding:11px 20px;border-radius:10px;font:600 15px inherit;cursor:pointer}
+  button.primary:disabled{opacity:.4;cursor:default}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);padding:7px 12px;border-radius:8px;font:inherit;cursor:pointer}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);padding:8px 6px;border-bottom:1px solid var(--line)}
+  td{padding:9px 6px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  .rank{font-weight:700;color:var(--dim);width:28px}
+  .rating,.num{font-weight:700;font-variant-numeric:tabular-nums}
+  .delta{font-variant-numeric:tabular-nums;font-weight:600}
+  .up{color:var(--blue)} .down{color:var(--dim)}
+  .chip{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:4px 10px;margin:0 6px 6px 0;font-size:13px}
+  .chip b{font-weight:600} .chip span{color:var(--dim);cursor:pointer;margin-left:6px}
+  .msg{padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:12px;background:rgba(0,113,227,.1);color:var(--blue)}
+  .msg.bad{background:rgba(255,159,10,.14);color:#B25000}
+  @media (prefers-color-scheme:dark){ .msg.bad{color:#FFB340} }
+  .muted{color:var(--dim);font-size:13px}
+  .serve-toggle{display:flex;gap:8px;margin-top:10px}
+  .serve-toggle button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--dim);font:600 13px inherit;cursor:pointer}
+  .serve-toggle button.on{background:var(--cyan);border-color:var(--cyan);color:#03303c}
+  .hist{border-bottom:1px solid var(--line);padding:12px 0;font-size:14px}
+  .hist:last-child{border:0}
+  .score{font-weight:700;font-variant-numeric:tabular-nums}
+  .flexbet{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .stat{display:flex;gap:20px;flex-wrap:wrap;margin:14px 0}
+  .stat div{flex:1;min-width:130px;background:var(--bg);border-radius:12px;padding:14px}
+  .stat .big{font-size:27px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .bar{height:26px;border-radius:6px;background:var(--bg);overflow:hidden;display:flex;margin:6px 0 2px}
+  .bar i{display:block;background:linear-gradient(90deg,var(--cyan),var(--blue))}
+  .verdict{border-left:3px solid var(--blue);padding:10px 14px;margin-top:14px;background:var(--bg);border-radius:0 10px 10px 0}
+
+  /* ---- lock screen ---- */
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;
+    align-items:center;justify-content:center;padding:24px}
+  #gate .box{width:100%;max-width:340px;text-align:center}
+  #gate .logo{width:54px;height:54px;border-radius:15px;margin:0 auto 16px;
+    background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;
+    align-items:center;justify-content:center;font-size:27px}
+  #gate h2{font-size:21px;margin:0 0 6px}
+  #gate p{color:var(--dim);font-size:13px;margin:0 0 20px}
+  #pin,#pin2{font-size:26px;text-align:center;letter-spacing:.35em;padding:14px;
+    font-variant-numeric:tabular-nums;margin-bottom:10px}
+  #gate button{width:100%;margin-top:6px}
+  #gateMsg{min-height:20px;font-size:13px;margin-top:12px}
+  #gateMsg.bad{color:#B25000} #gateMsg.ok{color:var(--blue)}
+  @media (prefers-color-scheme:dark){ #gateMsg.bad{color:#FFB340} }
+  .lockwarn{background:rgba(255,159,10,.14);color:#B25000;padding:10px 12px;
+    border-radius:9px;font-size:12px;margin-top:14px;text-align:left}
+  @media (prefers-color-scheme:dark){ .lockwarn{color:#FFB340} }
+  body.locked >  header, body.locked > nav, body.locked > main{display:none}
+
+  /* ---- phone tuning ---- */
+  @media (max-width:600px){
+    header{padding:18px 16px} header h1{font-size:21px}
+    main{padding:14px 12px 44px} .card{padding:14px;border-radius:12px}
+    input,select{padding:11px 10px;font-size:16px} /* 16px stops iOS zoom-on-focus */
+    .stat div{min-width:100%}
+    table{font-size:13px} th,td{padding:7px 4px}
+    .serve-toggle button{padding:12px}
+    button.primary{width:100%;padding:14px}
+    .flexbet{align-items:stretch}
+  }
+</style>
+</head>
+<body class="locked">
+
+<div id="gate">
+  <div class="box">
+    <div class="logo">🏓</div>
+    <h2 id="gateTitle">Enter PIN</h2>
+    <p id="gateSub">Ask whoever set this up for the code.</p>
+    <input type="password" id="pin" inputmode="numeric" autocomplete="off"
+           pattern="[0-9]*" maxlength="12" placeholder="••••••">
+    <input type="password" id="pin2" inputmode="numeric" autocomplete="off"
+           pattern="[0-9]*" maxlength="12" placeholder="confirm friend PIN" hidden>
+    <div id="adminSetup" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <label style="text-align:left">Admin PIN — for deleting matches. Keep this one to yourself.</label>
+      <input type="password" id="apin" inputmode="numeric" autocomplete="off"
+             pattern="[0-9]*" maxlength="12" placeholder="admin PIN">
+      <input type="password" id="apin2" inputmode="numeric" autocomplete="off"
+             pattern="[0-9]*" maxlength="12" placeholder="confirm admin PIN">
+      <div id="tokenWrap" hidden style="margin-top:12px">
+        <label style="text-align:left">Setup code — from your hosting dashboard</label>
+        <input type="password" id="stoken" autocomplete="off" placeholder="setup code">
+      </div>
+    </div>
+    <button class="primary" id="gateGo">Unlock</button>
+    <div id="gateMsg"></div>
+    <div id="gateWarn"></div>
+  </div>
+</div>
+
+<header>
+  <h1>Pickleball Elo</h1>
+  <div class="sub">
+    <span id="conn"><span class="dot"></span>connecting…</span>
+    <span>·</span><span id="me">not signed in</span>
+    <span id="roleBadge"></span>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="match" class="on">Record Match</button>
+  <button data-tab="rank">Rankings</button>
+  <button data-tab="serve">Serve Analysis</button>
+  <button data-tab="hist">History</button>
+  <button data-tab="players">Players</button>
+  <button data-tab="log">Activity</button>
+  <button data-tab="backup">Backups</button>
+  <button data-tab="about">How it works</button>
+</nav>
+
+<main>
+  <!-- MATCH -->
+  <section id="tab-match">
+    <div class="card">
+      <h2>New match</h2>
+      <div id="matchMsg"></div>
+      <div class="row" style="margin-bottom:14px">
+        <div><label>Format</label>
+          <select id="format">
+            <option value="doubles">Doubles (4 players)</option>
+            <option value="singles">Singles (2 players)</option>
+          </select></div>
+        <div><label>Date</label><input type="date" id="mdate"></div>
+        <div><label>Game to</label><select id="target"><option>11</option><option>15</option><option>21</option></select></div>
+        <div><label>Recorded by <span style="color:var(--blue)">*</span></label><input id="recorder" placeholder="your name" required></div>
+      </div>
+
+      <div class="row">
+        <div class="side serving" id="sideA">
+          <h3>Side A</h3>
+          <div style="margin-bottom:8px"><label>Player 1</label><select class="pick" id="a1"></select></div>
+          <div class="p2A" style="margin-bottom:8px"><label>Player 2</label><select class="pick" id="a2"></select></div>
+          <label>Final score</label><input type="number" id="sa" min="0" placeholder="11">
+        </div>
+        <div class="side" id="sideB">
+          <h3>Side B</h3>
+          <div style="margin-bottom:8px"><label>Player 1</label><select class="pick" id="b1"></select></div>
+          <div class="p2B" style="margin-bottom:8px"><label>Player 2</label><select class="pick" id="b2"></select></div>
+          <label>Final score</label><input type="number" id="sb" min="0" placeholder="9">
+        </div>
+      </div>
+
+      <label style="margin-top:14px">Which side served first?</label>
+      <div class="serve-toggle">
+        <button id="srvA" class="on">Side A served</button>
+        <button id="srvB">Side B served</button>
+      </div>
+
+      <div style="margin-top:18px" class="flexbet">
+        <button class="primary" id="save">Save match</button>
+        <span class="muted" id="preview"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RANKINGS -->
+  <section id="tab-rank" hidden>
+    <div class="card">
+      <div class="flexbet" style="margin-bottom:12px">
+        <h2 style="margin:0">Rankings</h2>
+        <select id="rankMode" style="width:auto">
+          <option value="overall">Overall</option>
+          <option value="doubles">Doubles only</option>
+          <option value="singles">Singles only</option>
+        </select>
+      </div>
+      <div id="rankTable"></div>
+      <p class="muted" style="margin-top:12px">Fewer than 5 matches shows as <b>provisional</b> — those ratings still move fast.</p>
+    </div>
+  </section>
+
+  <!-- SERVE ANALYSIS -->
+  <section id="tab-serve" hidden>
+    <div class="card">
+      <h2>Does serving first matter?</h2>
+      <div id="serveOut"></div>
+    </div>
+    <div class="card">
+      <h2>Per-player serve splits</h2>
+      <p class="muted">Win rate when your side served first vs. when it didn't. Wide gaps on small samples are almost certainly noise — check the match counts.</p>
+      <div id="serveTable"></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-hist" hidden>
+    <div class="card">
+      <div class="flexbet" style="margin-bottom:12px">
+        <h2 style="margin:0">Match history</h2>
+        <button class="ghost" id="exp">Export JSON</button>
+      </div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <!-- BACKUPS -->
+  <section id="tab-backup" hidden>
+    <div class="card">
+      <h2>Backups</h2>
+      <p class="muted">The server snapshots the database every time it starts,
+        keeping the last 10. That covers a bad deploy or an accidental delete —
+        but snapshots live next to the database, so they don't protect against
+        losing the volume itself. <b>Keep at least one export off-site.</b></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
+        <button class="primary" id="dlJson">Download JSON backup</button>
+        <button class="ghost" id="snapNow">Snapshot now</button>
+      </div>
+      <h3>Server snapshots</h3>
+      <div id="bkList"><p class="muted">Sign in as admin to view.</p></div>
+    </div>
+    <div class="card">
+      <h2>Restore from a JSON backup</h2>
+      <p class="muted">Adds anything missing. Matches already present are skipped,
+        so importing the same file twice is safe. A snapshot is taken first,
+        automatically.</p>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Backup file</label><input type="file" id="impFile" accept=".json"></div>
+        <div><label>Admin PIN</label><input type="password" id="impPin" inputmode="numeric" autocomplete="off"></div>
+        <div style="flex:0"><button class="primary" id="doImport">Restore</button></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:flex-start">
+        <input type="checkbox" id="impReplace" style="width:auto;margin-top:3px">
+        <label for="impReplace" style="margin:0">Replace everything instead of merging
+          <span class="muted">— deletes all current data first. Only use when
+          recovering from a known-good full backup.</span></label>
+      </div>
+      <div id="impMsg" class="muted" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- PLAYERS -->
+  <section id="tab-players" hidden>
+    <div class="card">
+      <h2>Roster</h2>
+      <div class="row" style="align-items:flex-end;margin-bottom:14px">
+        <div><label>Player name</label><input id="newPlayer" placeholder="e.g. Allan"></div>
+        <div style="flex:0"><button class="primary" id="addPlayer">Add</button></div>
+      </div>
+      <div id="chips"></div>
+      <p class="muted">Removing a player also deletes their matches and recalculates everyone.</p>
+    </div>
+  </section>
+
+  <!-- ACTIVITY LOG -->
+  <section id="tab-log" hidden>
+    <div class="card">
+      <h2>Activity log</h2>
+      <p class="muted">Every match entry, deletion, and PIN change — most recent
+        first, last 50 events. Because everyone shares one friend PIN, this is
+        your record of what happened; the <b>recorded by</b> name is
+        self-reported, so treat it as a label rather than proof.</p>
+      <div id="logList"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="tab-about" hidden>
+    <div class="card">
+      <h2>The rating math</h2>
+      <p>Modeled on tennis Elo (the FiveThirtyEight approach), adapted for doubles.</p>
+      <h3>Expected result</h3>
+      <p class="muted">E<sub>A</sub> = 1 / (1 + 10<sup>(R<sub>B</sub> − R<sub>A</sub>)/400</sup>) — a 100-point edge ≈ 64% win probability. Everyone starts at 1500.</p>
+      <h3>Dynamic K-factor</h3>
+      <p class="muted">K = 250 / (matches + 5)<sup>0.4</sup>. New players move ~130 pts/match; veterans settle near 30. Tennis Elo's signature feature — ratings converge fast, then stabilize.</p>
+      <h3>Doubles</h3>
+      <p class="muted">Team rating is the <b>average</b> of both players. Partners share one expected result but each updates with their <i>own</i> K, so a newcomer swings more than the veteran they're paired with.</p>
+      <h3>Margin of victory</h3>
+      <p class="muted">m = 0.75 + 0.5 × (pointDiff / winnerScore), clamped to 0.75–1.25. An 11–9 grind moves ~0.79×; an 11–0 shutout 1.25×.</p>
+      <div style="margin:12px 0;display:flex;gap:10px;align-items:center">
+        <input type="checkbox" id="useMov" style="width:auto"> <label for="useMov" style="margin:0">Use margin-of-victory scaling <span class="muted">(shared setting — admin only)</span></label>
+      </div>
+      <h3>Serving first</h3>
+      <p class="muted">Recorded on every match and analyzed in <b>Serve Analysis</b>, but deliberately excluded from the rating formula. Testing whether it matters requires the ratings stay independent of it — if you adjusted for serve while measuring it, you'd be measuring your own assumption.</p>
+      <h3>Storage &amp; access</h3>
+      <p class="muted">Everything lives in <code>pickleball.db</code> (SQLite) next to the server. The page polls every 5s, so matches entered by others appear automatically. Ratings are always recomputed from the full match log, so deleting a bad entry cleanly rewrites history.</p>
+      <p class="muted"><b>Two PINs.</b> The <i>friend PIN</i> lets anyone add players and record matches. The <i>admin PIN</i> is additionally required to delete anything or change settings. Both are stored only as scrypt hashes, and wrong guesses trigger exponential lockout — five misses, then doubling delays up to an hour.</p>
+      <p class="muted">Closing the tunnel or stopping the server never loses data — every match is written to disk immediately.</p>
+
+      <div id="adminBox">
+        <h3>Change a PIN <span class="muted" style="text-transform:none;letter-spacing:0">(admin only)</span></h3>
+        <div class="row" style="align-items:flex-end">
+          <div><label>Which</label><select id="whichPin">
+            <option value="friend">Friend PIN</option>
+            <option value="admin">Admin PIN</option>
+          </select></div>
+          <div><label>Admin PIN (to confirm)</label><input type="password" id="oldPin" inputmode="numeric" autocomplete="off"></div>
+          <div><label>New PIN (8+ digits)</label><input type="password" id="newPin" inputmode="numeric" autocomplete="off"></div>
+          <div style="flex:0"><button class="ghost" id="chPin">Update</button></div>
+        </div>
+        <p class="muted" id="pinMsg" style="margin-top:8px">Changing the admin PIN signs every device out, including yours.</p>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="ghost" id="logout">Sign out of this device</button>
+        <button class="ghost" id="elevate">Sign in as admin</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const BASE=1500, PROV=5, API='';
+let db={players:[],matches:[],useMov:true,audit:[],rev:''}, serve='a', busy=false;
+let authed=false, role=null, pollTimer=null;
+const isAdmin=()=>role==='admin';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- API ---------------- */
+async function call(path, method='GET', body){
+  const r = await fetch(API+path, {
+    method, headers: body?{'Content-Type':'application/json'}:{},
+    credentials:'same-origin',
+    body: body?JSON.stringify(body):undefined });
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(r.status===401 && d.auth===false){ lock(); throw new Error('Session expired — enter the PIN again.'); }
+  if(!r.ok) throw new Error(d.error||'Request failed');
+  return d;
+}
+
+/* ---------------- auth gate ---------------- */
+let setupMode=false, lockLeft=0, elevating=false;
+
+function lock(){
+  authed=false; role=null;
+  document.body.classList.add('locked');
+  $('gate').style.display='flex';
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+}
+function unlock(){
+  authed=true;
+  document.body.classList.remove('locked');
+  $('gate').style.display='none';
+  $('pin').value=''; $('pin2').value=''; $('apin').value=''; $('apin2').value='';
+  applyRole();
+  refresh();
+  if(!pollTimer) pollTimer=setInterval(refresh,5000);
+}
+function applyRole(){
+  $('roleBadge').innerHTML = isAdmin()
+    ? '<span>·</span> <b>admin</b>'
+    : '<span>·</span> friend';
+  $('adminBox').hidden=!isAdmin();
+  $('useMov').disabled=!isAdmin();
+  $('elevate').hidden=isAdmin();
+  renderAll();
+}
+const gmsg=(t,cls='')=>{ $('gateMsg').className=cls; $('gateMsg').textContent=t||''; };
+
+async function checkAuth(){
+  try{
+    const a=await call('/api/auth');
+    if(!a.https && !/^(localhost|127\.|192\.168\.|10\.|172\.)/.test(location.hostname)){
+      $('gateWarn').innerHTML='<div class="lockwarn">This page isn\u2019t using HTTPS. Your PIN would be sent unencrypted — open the https:// tunnel link instead.</div>';
+    } else $('gateWarn').innerHTML='';
+    setupMode=!a.pinSet;
+    $('adminSetup').hidden=!setupMode;
+    $('tokenWrap').hidden=!(setupMode && a.needSetupToken);
+    $('gateTitle').textContent=setupMode?'Set up two PINs':'Enter PIN';
+    $('gateSub').textContent=setupMode
+      ? 'You\u2019re first. The friend PIN is for entering scores \u2014 share it. The admin PIN deletes things \u2014 don\u2019t. Use 8+ digits for both.'
+      : 'Ask whoever set this up for the code.';
+    $('pin2').hidden=!setupMode;
+    $('pin').placeholder=setupMode?'friend PIN':'\u2022\u2022\u2022\u2022\u2022\u2022';
+    $('gateGo').textContent=setupMode?'Create PINs & continue':'Unlock';
+    if(a.lock>0){ startLockCountdown(a.lock); }
+    role=a.role||null;
+    a.authed ? unlock() : lock();
+  }catch(e){
+    gmsg('Can\u2019t reach the server. Is it running?','bad');
+    lock();
+  }
+}
+function startLockCountdown(sec){
+  lockLeft=sec; $('gateGo').disabled=true;
+  const tick=()=>{
+    if(lockLeft<=0){ $('gateGo').disabled=false; gmsg(''); return; }
+    gmsg(`Locked out — try again in ${lockLeft}s.`,'bad');
+    lockLeft--; setTimeout(tick,1000);
+  };
+  tick();
+}
+
+$('gateGo').onclick=async()=>{
+  const pin=$('pin').value.trim();
+  if(!/^\d{6,12}$/.test(pin)) return gmsg('PIN must be 6\u201312 digits.','bad');
+  let payload={pin};
+  if(setupMode){
+    const ap=$('apin').value.trim();
+    if(pin!==$('pin2').value.trim()) return gmsg('The friend PINs don\u2019t match.','bad');
+    if(!/^\d{6,12}$/.test(ap)) return gmsg('Admin PIN must be 6\u201312 digits.','bad');
+    if(ap!==$('apin2').value.trim()) return gmsg('The admin PINs don\u2019t match.','bad');
+    if(ap===pin) return gmsg('The admin PIN must differ from the friend PIN.','bad');
+    payload.adminPin=ap;
+    if(!$('tokenWrap').hidden){
+      const tk=$('stoken').value.trim();
+      if(!tk) return gmsg('Enter the setup code from your hosting dashboard.','bad');
+      payload.setupToken=tk;
+    }
+  }
+  $('gateGo').disabled=true; gmsg('Checking\u2026');
+  try{
+    const r=await call(setupMode?'/api/setup':'/api/login','POST',payload);
+    role=r.role||'friend';
+    gmsg('','ok'); setupMode=false; elevating=false; unlock();
+  }catch(e){
+    gmsg(e.message,'bad');
+    const m=/in (\d+)s/.exec(e.message);
+    if(m) return startLockCountdown(+m[1]);
+    $('pin').value=''; $('pin').focus();
+  }
+  if(lockLeft<=0) $('gateGo').disabled=false;
+};
+[$('pin'),$('pin2'),$('apin'),$('apin2')].forEach(el=>el.onkeydown=e=>{ if(e.key==='Enter') $('gateGo').click(); });
+
+$('logout').onclick=async()=>{ await call('/api/logout','POST',{}); lock(); };
+$('elevate').onclick=()=>{
+  // Re-show the gate; entering the admin PIN swaps this device's role.
+  lock(); setupMode=false;
+  $('gateTitle').textContent='Enter admin PIN';
+  $('gateSub').textContent='This unlocks deleting matches and changing settings.';
+  $('pin').focus();
+};
+$('chPin').onclick=async()=>{
+  const o=$('oldPin').value.trim(), n=$('newPin').value.trim(), w=$('whichPin').value;
+  if(!/^\d{6,12}$/.test(n)) return $('pinMsg').textContent='New PIN must be 6\u201312 digits.';
+  try{
+    await call('/api/pin','POST',{old:o,new:n,which:w});
+    $('oldPin').value=''; $('newPin').value='';
+    $('pinMsg').textContent = w==='admin'
+      ? 'Admin PIN updated. Every device has been signed out.'
+      : 'Friend PIN updated. Tell your friends the new one.';
+  }catch(e){ $('pinMsg').textContent=e.message; }
+};
+
+function online(ok){
+  $('conn').innerHTML = ok
+    ? '<span class="dot"></span>synced'
+    : '<span class="dot off"></span>offline — retrying';
+}
+async function refresh(){
+  if(!authed) return;
+  try{
+    const d = await call('/api/state');
+    online(true);
+    if(d.rev !== db.rev){ db = d; $('useMov').checked = db.useMov; renderAll(); }
+  }catch(e){ online(false); }
+}
+
+/* ---------------- Elo engine ---------------- */
+const expected=(ra,rb)=>1/(1+Math.pow(10,(rb-ra)/400));
+const kFactor=n=>250/Math.pow(n+5,0.4);
+function movMult(w,l){
+  if(!db.useMov) return 1;
+  return Math.min(1.25, Math.max(0.75, 0.75+0.5*((w-l)/Math.max(w,1))));
+}
+function compute(mode='overall'){
+  const S={};
+  db.players.forEach(p=>S[p]={name:p,r:BASE,n:0,w:0,l:0,peak:BASE,
+    srv:0,srvW:0,nsrv:0,nsrvW:0,pf:0,pa:0});
+  const log=[];
+  db.matches.forEach(m=>{
+    if(mode!=='overall' && m.format!==mode) return;
+    if([...m.a,...m.b].some(p=>!S[p])) return;
+    const RA=m.a.reduce((s,p)=>s+S[p].r,0)/m.a.length;
+    const RB=m.b.reduce((s,p)=>s+S[p].r,0)/m.b.length;
+    const EA=expected(RA,RB), aWon=m.sa>m.sb;
+    const mult=movMult(Math.max(m.sa,m.sb),Math.min(m.sa,m.sb));
+    const d={};
+    m.a.forEach(p=>d[p]=kFactor(S[p].n)*mult*((aWon?1:0)-EA));
+    m.b.forEach(p=>d[p]=kFactor(S[p].n)*mult*((aWon?0:1)-(1-EA)));
+    [['a',aWon],['b',!aWon]].forEach(([side,won])=>m[side].forEach(p=>{
+      const s=S[p];
+      s.r+=d[p]; s.n++; won?s.w++:s.l++; s.peak=Math.max(s.peak,s.r);
+      s.pf+=side==='a'?m.sa:m.sb; s.pa+=side==='a'?m.sb:m.sa;
+      if(m.serve===side){ s.srv++; if(won) s.srvW++; }
+      else { s.nsrv++; if(won) s.nsrvW++; }
+    }));
+    log.push({...m,RA,RB,EA,mult,d});
+  });
+  return {S,log};
+}
+
+/* ---------------- serve-first analysis ---------------- */
+// Two-proportion z-test against the 50% null. Enough to tell signal from noise
+// without pretending a rec-league sample is more than it is.
+function serveStats(){
+  const {log}=compute('overall');
+  const rows=log.map(m=>({win:(m.serve==='a')===(m.sa>m.sb), fmt:m.format,
+                          fav:(m.serve==='a'?m.EA:1-m.EA)}));
+  const n=rows.length, wins=rows.filter(r=>r.win).length;
+  const p=n?wins/n:0;
+  const se=n?Math.sqrt(0.25/n):0;             // SE under H0: p = 0.5
+  const z=se?(p-0.5)/se:0;
+  const pv=2*(1-normCdf(Math.abs(z)));
+  // Expected serve-side win rate from Elo alone — controls for stronger
+  // teams happening to serve more often.
+  const expW=n?rows.reduce((s,r)=>s+r.fav,0)/n:0;
+  const by=f=>{const s=rows.filter(r=>r.fmt===f); return {n:s.length,
+    w:s.filter(r=>r.win).length, p:s.length?s.filter(r=>r.win).length/s.length:0};};
+  return {n,wins,p,z,pv,expW,doubles:by('doubles'),singles:by('singles')};
+}
+function normCdf(x){ // Abramowitz–Stegun
+  const t=1/(1+0.2316419*x), d=0.3989423*Math.exp(-x*x/2);
+  return 1-d*t*(1.330274*Math.pow(t,4)-1.821256*Math.pow(t,3)
+    +1.781478*t*t-0.356538*t+0.319382);
+}
+
+function renderServe(){
+  const s=serveStats();
+  if(s.n<4){
+    $('serveOut').innerHTML='<p class="muted">Need a handful of matches before this means anything. Recorded so far: '+s.n+'.</p>';
+    $('serveTable').innerHTML=''; return;
+  }
+  const pct=x=>(100*x).toFixed(1)+'%';
+  const edge=s.p-s.expW;
+  let verdict, detail;
+  if(s.n<40){
+    verdict='Too early to call';
+    detail=`With ${s.n} matches the margin of error is ±${(100*1.96*Math.sqrt(0.25/s.n)).toFixed(0)} points, so almost any result here is consistent with serving first making no difference. For reference: a 60% serve-first rate only becomes statistically significant at about 100 matches (±10 pts). A smaller real effect — say 55% — would need roughly 400. Keep recording.`;
+  } else if(s.pv<0.05){
+    verdict=(s.p>0.5?'Serving first wins more often':'Serving first wins less often')+' — statistically significant';
+    detail=`p = ${s.pv.toFixed(3)}, below the 0.05 threshold. A gap this large is unlikely to be chance alone.`;
+  } else {
+    verdict='No significant serve advantage';
+    detail=`p = ${s.pv.toFixed(3)}, above 0.05. The serving side's ${pct(s.p)} win rate is within normal random variation of 50%.`;
+  }
+  $('serveOut').innerHTML=`
+    <div class="stat">
+      <div><div class="muted">Serve-first win rate</div><div class="big">${pct(s.p)}</div>
+        <div class="muted">${s.wins} of ${s.n} matches</div></div>
+      <div><div class="muted">Expected from Elo alone</div><div class="big">${pct(s.expW)}</div>
+        <div class="muted">controls for team strength</div></div>
+      <div><div class="muted">Serve edge</div><div class="big">${edge>=0?'+':''}${(100*edge).toFixed(1)}</div>
+        <div class="muted">points above expectation</div></div>
+    </div>
+    <div class="bar"><i style="width:${(100*s.p).toFixed(1)}%"></i></div>
+    <div class="muted">Left = won after serving first · the 50% mark is even</div>
+    <h3>By format</h3>
+    <table><thead><tr><th>Format</th><th>Matches</th><th>Serve-first wins</th><th>Rate</th></tr></thead><tbody>
+      ${['doubles','singles'].map(f=>s[f].n?`<tr><td>${f}</td><td class="num">${s[f].n}</td>
+        <td class="num">${s[f].w}</td><td class="num">${pct(s[f].p)}</td></tr>`:'').join('')}
+    </tbody></table>
+    <div class="verdict"><b>${verdict}</b><div class="muted" style="margin-top:4px">${detail}</div></div>`;
+
+  const {S}=compute('overall');
+  const list=Object.values(S).filter(p=>p.srv+p.nsrv>0).sort((a,b)=>b.srv+b.nsrv-(a.srv+a.nsrv));
+  $('serveTable').innerHTML=`<table><thead><tr><th>Player</th>
+    <th>Served first</th><th>Win %</th><th>Received first</th><th>Win %</th><th>Gap</th></tr></thead><tbody>`+
+    list.map(p=>{
+      const a=p.srv?p.srvW/p.srv:null, b=p.nsrv?p.nsrvW/p.nsrv:null;
+      const g=(a!==null&&b!==null)?(a-b):null;
+      return `<tr><td><b>${esc(p.name)}</b></td>
+        <td class="num">${p.srv}</td><td>${a!==null?Math.round(100*a)+'%':'—'}</td>
+        <td class="num">${p.nsrv}</td><td>${b!==null?Math.round(100*b)+'%':'—'}</td>
+        <td class="delta ${g>0?'up':'down'}">${g!==null?(g>0?'+':'')+Math.round(100*g)+' pts':'—'}</td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+
+/* ---------------- other views ---------------- */
+function fillSelects(){
+  const opts='<option value="">—</option>'+db.players.map(p=>`<option>${esc(p)}</option>`).join('');
+  document.querySelectorAll('.pick').forEach(s=>{const v=s.value;s.innerHTML=opts;s.value=v;});
+}
+function renderChips(){
+  $('chips').innerHTML=db.players.length
+    ? db.players.map(p=>`<span class="chip"><b>${esc(p)}</b>${isAdmin()?`<span data-del="${esc(p)}">✕</span>`:''}</span>`).join('')
+    : '<p class="muted">No players yet.</p>';
+  $('chips').querySelectorAll('[data-del]').forEach(x=>x.onclick=async()=>{
+    if(!confirm(`Remove ${x.dataset.del} and all their matches?`)) return;
+    try{ db=await call('/api/players/'+encodeURIComponent(x.dataset.del),'DELETE'); renderAll(); }
+    catch(e){ alert(e.message); }
+  });
+}
+function renderRank(){
+  const {S}=compute($('rankMode').value);
+  const list=Object.values(S).filter(p=>p.n>0).sort((a,b)=>b.r-a.r);
+  if(!list.length){$('rankTable').innerHTML='<p class="muted">No matches yet.</p>';return;}
+  $('rankTable').innerHTML=`<table><thead><tr><th>#</th><th>Player</th><th>Elo</th>
+    <th>W–L</th><th>Win %</th><th>Pt diff</th><th>Peak</th></tr></thead><tbody>`+
+    list.map((p,i)=>`<tr><td class="rank">${i+1}</td>
+      <td><b>${esc(p.name)}</b>${p.n<PROV?' <span class="muted">provisional</span>':''}</td>
+      <td class="rating">${Math.round(p.r)}</td><td>${p.w}–${p.l}</td>
+      <td>${Math.round(100*p.w/p.n)}%</td>
+      <td>${p.pf-p.pa>0?'+':''}${p.pf-p.pa}</td>
+      <td class="muted">${Math.round(p.peak)}</td></tr>`).join('')+'</tbody></table>';
+}
+function renderHist(){
+  const {log}=compute('overall');
+  if(!log.length){$('histList').innerHTML='<p class="muted">Nothing recorded yet.</p>';return;}
+  $('histList').innerHTML=log.slice().reverse().map(m=>{
+    const aWon=m.sa>m.sb;
+    const names=side=>m[side].map(p=>`${esc(p)} <span class="delta ${m.d[p]>=0?'up':'down'}">${m.d[p]>=0?'+':''}${m.d[p].toFixed(1)}</span>`).join(' &amp; ');
+    return `<div class="hist"><div class="flexbet"><div>
+      <div class="muted">${m.date} · ${m.format} · ${m.serve==='a'?'A':'B'} served first · win prob A ${Math.round(m.EA*100)}%${db.useMov?` · MOV ×${m.mult.toFixed(2)}`:''}${m.recorder?' · by '+esc(m.recorder):''}</div>
+      <div style="margin-top:4px">${aWon?'<b>':''}${names('a')}${aWon?'</b>':''}
+        <span class="score"> ${m.sa} – ${m.sb} </span>
+        ${!aWon?'<b>':''}${names('b')}${!aWon?'</b>':''}</div>
+      </div>${isAdmin()?`<button class="ghost" data-id="${m.id}">Delete</button>`:''}</div></div>`;
+  }).join('');
+  $('histList').querySelectorAll('[data-id]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('Delete this match? Everyone\u2019s ratings will be recalculated.')) return;
+    try{ db=await call('/api/matches/'+b.dataset.id,'DELETE'); renderAll(); }
+    catch(e){ alert(e.message); }
+  });
+}
+function renderLog(){
+  if(!db.audit || !db.audit.length){
+    $('logList').innerHTML='<p class="muted">Nothing yet.</p>'; return;
+  }
+  $('logList').innerHTML=db.audit.map(e=>{
+    const when=new Date(e.at*1000).toLocaleString();
+    const isDel=/DELETED/.test(e.action);
+    return `<div class="hist"><div class="muted">${esc(when)}</div>
+      <div style="margin-top:2px">
+        <b${isDel?' style="color:#B25000"':''}>${esc(e.action)}</b>
+        ${e.detail?' — '+esc(e.detail):''}</div></div>`;
+  }).join('');
+}
+function renderAll(){ fillSelects(); renderChips(); renderRank(); renderServe(); renderHist(); renderLog(); livePreview(); }
+
+/* ---------------- form ---------------- */
+const isDoubles=()=>$('format').value==='doubles';
+const sides=()=>isDoubles()
+  ? {a:[$('a1').value,$('a2').value], b:[$('b1').value,$('b2').value]}
+  : {a:[$('a1').value], b:[$('b1').value]};
+function livePreview(){
+  const {a,b}=sides(), {S}=compute('overall');
+  if([...a,...b].some(p=>!p)){$('preview').textContent='';return;}
+  const r=arr=>arr.reduce((s,p)=>s+(S[p]?S[p].r:BASE),0)/arr.length;
+  $('preview').textContent=`Side A win probability: ${Math.round(expected(r(a),r(b))*100)}%`;
+}
+function syncFormat(){ document.querySelectorAll('.p2A,.p2B').forEach(e=>e.hidden=!isDoubles()); livePreview(); }
+function setServe(s){
+  serve=s;
+  $('srvA').classList.toggle('on',s==='a'); $('srvB').classList.toggle('on',s==='b');
+  $('sideA').classList.toggle('serving',s==='a'); $('sideB').classList.toggle('serving',s==='b');
+}
+const msg=(t,ok)=>$('matchMsg').innerHTML=t?`<div class="msg ${ok?'':'bad'}">${esc(t)}</div>`:'';
+
+$('save').onclick=async()=>{
+  if(busy) return;
+  const {a,b}=sides();
+  const rec=$('recorder').value.trim();
+  if(rec.length<2){
+    msg('Put your name in "Recorded by" — every match needs to say who entered it.',false);
+    $('recorder').focus(); return;
+  }
+  const sa=parseInt($('sa').value), sb=parseInt($('sb').value);
+  const t=+$('target').value, hi=Math.max(sa,sb), lo=Math.min(sa,sb);
+  if(!isNaN(hi)&&(hi<t||hi-lo<2)&&!confirm(`${sa}–${sb} isn't a normal game to ${t} (win by 2). Save anyway?`)) return;
+  busy=true; $('save').disabled=true;
+  try{
+    db=await call('/api/matches','POST',{date:$('mdate').value,
+      format:isDoubles()?'doubles':'singles', a,b, sa,sb, serve,
+      recorder:rec});
+    $('sa').value=''; $('sb').value='';
+    msg('Match saved — everyone\u2019s ratings updated.',true);
+    renderAll();
+  }catch(e){ msg(e.message,false); }
+  busy=false; $('save').disabled=false;
+};
+$('addPlayer').onclick=async()=>{
+  const n=$('newPlayer').value.trim(); if(!n) return;
+  try{ db=await call('/api/players','POST',{name:n}); $('newPlayer').value=''; renderAll(); }
+  catch(e){ alert(e.message); }
+};
+$('newPlayer').onkeydown=e=>{ if(e.key==='Enter') $('addPlayer').click(); };
+$('useMov').onchange=async e=>{
+  try{ db=await call('/api/settings','POST',{useMov:e.target.checked}); renderAll(); }
+  catch(err){ alert(err.message); e.target.checked=db.useMov; }
+};
+$('exp').onclick=()=>{
+  const url=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  Object.assign(document.createElement('a'),{href:url,download:'pickleball-elo.json'}).click();
+  URL.revokeObjectURL(url);
+};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  ['match','rank','serve','hist','players','log','backup','about'].forEach(t=>$('tab-'+t).hidden=t!==b.dataset.tab);
+  if(b.dataset.tab==='backup') loadBackups();
+});
+
+/* ---------------- backups ---------------- */
+async function loadBackups(){
+  if(!isAdmin()){
+    $('bkList').innerHTML='<p class="muted">Sign in as admin to view server snapshots.</p>';
+    return;
+  }
+  try{
+    const d=await call('/api/backups');
+    $('bkList').innerHTML = d.backups.length
+      ? `<table><thead><tr><th>Snapshot</th><th>When</th><th>Size</th></tr></thead><tbody>`+
+        d.backups.map(b=>`<tr><td>${esc(b.name)}</td>
+          <td>${new Date(b.at*1000).toLocaleString()}</td>
+          <td class="num">${(b.size/1024).toFixed(0)} KB</td></tr>`).join('')+
+        `</tbody></table><p class="muted" style="margin-top:10px">Stored in <code>${esc(d.dir)}</code></p>`
+      : '<p class="muted">No snapshots yet — one is taken each time the server starts.</p>';
+  }catch(e){ $('bkList').innerHTML=`<p class="muted">${esc(e.message)}</p>`; }
+}
+$('dlJson').onclick=()=>{ window.location='/api/export'; };
+$('snapNow').onclick=async()=>{
+  try{ await call('/api/backup','POST',{}); await loadBackups(); alert('Snapshot taken.'); }
+  catch(e){ alert(e.message); }
+};
+$('doImport').onclick=async()=>{
+  const f=$('impFile').files[0], pin=$('impPin').value.trim();
+  if(!f) return $('impMsg').textContent='Pick a backup file first.';
+  if(!pin) return $('impMsg').textContent='Admin PIN required.';
+  const replace=$('impReplace').checked;
+  if(replace && !confirm('This DELETES all current data and replaces it with the file. Continue?')) return;
+  $('impMsg').textContent='Restoring\u2026';
+  try{
+    const txt=await f.text();
+    let parsed; try{ parsed=JSON.parse(txt); }catch(e){ throw new Error('That file isn\u2019t valid JSON.'); }
+    db=await call('/api/import','POST',{
+      players:parsed.players, matches:parsed.matches, adminPin:pin, replace});
+    $('impMsg').textContent='Restored. Check History to confirm.';
+    $('impPin').value=''; $('impFile').value=''; $('impReplace').checked=false;
+    renderAll();
+  }catch(e){ $('impMsg').textContent=e.message; }
+};
+$('format').onchange=syncFormat;
+$('rankMode').onchange=renderRank;
+$('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
+document.querySelectorAll('.pick').forEach(s=>s.onchange=livePreview);
+$('recorder').oninput=e=>{
+  localStorage.setItem('pbelo_me',e.target.value);
+  $('me').textContent=e.target.value?'signed in as '+e.target.value:'not signed in';
+};
+$('recorder').value=localStorage.getItem('pbelo_me')||'';
+$('recorder').oninput({target:$('recorder')});
+$('mdate').value=new Date().toISOString().slice(0,10);
+syncFormat(); setServe('a'); checkAuth();
+</script>
+</body>
+</html>

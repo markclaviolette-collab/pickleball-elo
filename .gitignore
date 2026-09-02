@@ -1,0 +1,23 @@
+# Local data — never commit the database or PIN hashes
+pickleball.db
+pickleball.db-wal
+pickleball.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Local tunnel/agent state
+.tunnel-name
+.tunnel-hostname
+current-url.txt
+logs/
+
+# Test scratch
+_srvtest.py
+_smoke.py
+_conctest.py
+authtest.db*
+smoke.db*
+
+# macOS
+.DS_Store
