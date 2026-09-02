@@ -133,7 +133,6 @@
   <div class="sub">
     <span id="conn"><span class="dot"></span>connecting…</span>
     <span id="roleBadge"></span>
-    <span>·</span><span id="me">no name set</span>
   </div>
 </header>
 
@@ -780,7 +779,6 @@ $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
 document.querySelectorAll('.pick').forEach(s=>s.onchange=livePreview);
 $('recorder').oninput=e=>{
   localStorage.setItem('pbelo_me',e.target.value);
-  $('me').textContent=e.target.value?'recording as '+e.target.value:'no name set';
 };
 $('recorder').value=localStorage.getItem('pbelo_me')||'';
 $('recorder').oninput({target:$('recorder')});
