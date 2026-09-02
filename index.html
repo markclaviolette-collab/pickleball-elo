@@ -132,8 +132,8 @@
   <h1>Pickleball Elo</h1>
   <div class="sub">
     <span id="conn"><span class="dot"></span>connecting…</span>
-    <span>·</span><span id="me">not signed in</span>
     <span id="roleBadge"></span>
+    <span>·</span><span id="me">no name set</span>
   </div>
 </header>
 
@@ -378,8 +378,8 @@ function unlock(){
 }
 function applyRole(){
   $('roleBadge').innerHTML = isAdmin()
-    ? '<span>·</span> <b>admin</b>'
-    : '<span>·</span> friend';
+    ? 'signed in as <b>admin</b>'
+    : 'signed in as <b>friend</b>';
   $('adminBox').hidden=!isAdmin();
   $('useMov').disabled=!isAdmin();
   $('elevate').hidden=isAdmin();
@@ -780,7 +780,7 @@ $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
 document.querySelectorAll('.pick').forEach(s=>s.onchange=livePreview);
 $('recorder').oninput=e=>{
   localStorage.setItem('pbelo_me',e.target.value);
-  $('me').textContent=e.target.value?'signed in as '+e.target.value:'not signed in';
+  $('me').textContent=e.target.value?'recording as '+e.target.value:'no name set';
 };
 $('recorder').value=localStorage.getItem('pbelo_me')||'';
 $('recorder').oninput({target:$('recorder')});
