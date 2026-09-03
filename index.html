@@ -36,6 +36,19 @@
   .side{border:1px solid var(--line);border-radius:12px;padding:14px;flex:1;min-width:250px}
   .side.serving{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}
   .side h3{margin-top:0}
+  .teamSlots{list-style:none;margin:0 0 10px;padding:0;min-height:32px}
+  .teamSlots li{font-size:14px;font-weight:600;padding:4px 0;border-bottom:1px solid var(--line)}
+  .teamSlots li:last-child{border-bottom:0}
+  .teamSlots li.gap{color:var(--dim);font-weight:400}
+  .roster{display:flex;flex-wrap:wrap;gap:8px}
+  .who-chip{min-height:40px;padding:0 14px;border-radius:20px;background:var(--bg);
+    border:1.5px solid var(--line);font:600 14px inherit;color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;gap:6px;transition:transform .1s}
+  .who-chip:active{transform:scale(.95)}
+  .who-chip[data-on="a"]{background:rgba(0,199,190,.14);border-color:var(--cyan);color:var(--cyan)}
+  .who-chip[data-on="b"]{background:rgba(0,113,227,.14);border-color:var(--blue);color:var(--blue)}
+  .who-chip em{font-style:normal;font-size:11px;font-weight:800;opacity:.85}
+  .who-chip.dim{opacity:.35;cursor:default}
   button.primary{background:var(--blue);color:#fff;border:0;padding:11px 20px;border-radius:10px;font:600 15px inherit;cursor:pointer}
   button.primary:disabled{opacity:.4;cursor:default}
   button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);padding:7px 12px;border-radius:8px;font:inherit;cursor:pointer}
@@ -164,25 +177,24 @@
         <div><label>Recorded by <span style="color:var(--blue)">*</span></label><input id="recorder" placeholder="your name" required></div>
       </div>
 
-      <div id="playerFilterWrap" hidden style="margin-bottom:10px">
-        <label>Filter players</label>
-        <input id="playerFilter" placeholder="Type a name to narrow the dropdowns below…" autocomplete="off">
-      </div>
-
-      <div class="row">
+      <div class="row" style="margin-bottom:8px">
         <div class="side serving" id="sideA">
-          <h3>Side A</h3>
-          <div style="margin-bottom:8px"><label>Player 1</label><select class="pick" id="a1"></select></div>
-          <div class="p2A" style="margin-bottom:8px"><label>Player 2</label><select class="pick" id="a2"></select></div>
+          <h3>Side A <span class="muted" id="avgA"></span></h3>
+          <ol class="teamSlots" id="listA"></ol>
           <label>Final score</label><input type="number" id="sa" min="0" placeholder="11">
         </div>
         <div class="side" id="sideB">
-          <h3>Side B</h3>
-          <div style="margin-bottom:8px"><label>Player 1</label><select class="pick" id="b1"></select></div>
-          <div class="p2B" style="margin-bottom:8px"><label>Player 2</label><select class="pick" id="b2"></select></div>
+          <h3>Side B <span class="muted" id="avgB"></span></h3>
+          <ol class="teamSlots" id="listB"></ol>
           <label>Final score</label><input type="number" id="sb" min="0" placeholder="9">
         </div>
       </div>
+
+      <p class="muted" style="margin:6px 0 8px" id="tapHint">Tap a name below to add them to Side A, tap again for Side B, tap again to remove.</p>
+      <div id="playerFilterWrap" hidden style="margin-bottom:10px">
+        <input id="playerFilter" placeholder="Filter players…" autocomplete="off">
+      </div>
+      <div class="roster" id="roster"></div>
 
       <label style="margin-top:14px">Which side served first?</label>
       <div class="serve-toggle">
@@ -615,38 +627,50 @@ function renderServe(){
 }
 
 /* ---------------- other views ---------------- */
-function fillSelects(){
+/* ---- tap-to-assign player pool (name -> 'a' | 'b' | unset) ---- */
+let pick={};
+const cap=()=>isDoubles()?2:1;
+const teamOf=side=>db.players.filter(n=>pick[n]===side);
+
+function drawRoster(){
+  const A=teamOf('a'), B=teamOf('b'), n=cap();
+  const cell=(arr,i)=>arr[i]?`<li>${esc(arr[i])}</li>`:'<li class="gap">—</li>';
+  $('listA').innerHTML=Array.from({length:n},(_,i)=>cell(A,i)).join('');
+  $('listB').innerHTML=Array.from({length:n},(_,i)=>cell(B,i)).join('');
+
   // Show the filter box only once it's actually useful — small groups
   // shouldn't see extra UI they don't need.
   const FILTER_THRESHOLD=8;
-  $('playerFilterWrap').hidden = db.players.length < FILTER_THRESHOLD;
-
+  $('playerFilterWrap').hidden = db.players.length<FILTER_THRESHOLD;
   const filter=($('playerFilter').value||'').trim().toLowerCase();
 
-  // Exclude anyone already picked in one of the OTHER three slots, so the
-  // same player can't be selected twice in one match. Ignore selects that
-  // are currently hidden (Player 2 in singles mode) — a leftover value from
-  // a previous doubles selection shouldn't block that player elsewhere.
-  const picks=Array.from(document.querySelectorAll('.pick'));
-  const visiblePicks=picks.filter(s=>s.offsetParent!==null);
-  const chosen=visiblePicks.map(s=>s.value).filter(Boolean);
+  if(!db.players.length){
+    $('roster').innerHTML='<p class="muted">Add players on the Players tab first.</p>';
+  }else{
+    $('roster').innerHTML=db.players.filter(n=>
+        pick[n] || !filter || n.toLowerCase().includes(filter)) // already-picked names stay visible so they can still be tapped off
+      .map(n=>{
+        const on=pick[n], full=(!on)&&A.length>=cap()&&B.length>=cap();
+        return `<button class="who-chip${full?' dim':''}" data-pk="${esc(n)}"${on?` data-on="${on}"`:''}>${esc(n)}`+
+          (on?`<em>${on==='a'?'A':'B'}</em>`:'')+'</button>';
+      }).join('');
+  }
 
-  picks.forEach(s=>{
-    const mine=s.value;
-    let names;
-    if(mine){
-      // Already has a selection — show just that one. The filter only
-      // narrows the list while a slot is still empty and being chosen.
-      names=[mine];
-    }else{
-      names=db.players.filter(p=>
-        !chosen.includes(p) && (!filter || p.toLowerCase().includes(filter)));
-    }
-    const opts='<option value="">—</option>'+
-      names.map(p=>`<option${p===mine?' selected':''}>${esc(p)}</option>`).join('');
-    s.innerHTML=opts;
-  });
+  const {S}=compute('overall');
+  const avg=arr=>arr.length?Math.round(arr.reduce((s,p)=>s+(S[p]?S[p].r:BASE),0)/arr.length):'';
+  $('avgA').textContent=A.length?'avg '+avg(A):'';
+  $('avgB').textContent=B.length?'avg '+avg(B):'';
 }
+$('playerFilter').oninput=drawRoster;
+$('roster').addEventListener('click',e=>{
+  const b=e.target.closest('[data-pk]'); if(!b) return;
+  const n=b.dataset.pk, cur=pick[n], n_=cap();
+  const A=teamOf('a').length, B=teamOf('b').length;
+  if(!cur){ if(A<n_) pick[n]='a'; else if(B<n_) pick[n]='b'; else return; }
+  else if(cur==='a'){ if(B<n_) pick[n]='b'; else delete pick[n]; }
+  else delete pick[n];
+  drawRoster(); livePreview();
+});
 function renderChips(){
   $('chips').innerHTML=db.players.length
     ? db.players.map(p=>`<span class="chip"><b>${esc(p)}</b>${isAdmin()?`<span data-del="${esc(p)}">✕</span>`:''}</span>`).join('')
@@ -702,20 +726,25 @@ function renderLog(){
         ${e.detail?' — '+esc(e.detail):''}</div></div>`;
   }).join('');
 }
-function renderAll(){ fillSelects(); renderChips(); renderRank(); renderServe(); renderHist(); renderLog(); livePreview(); }
+function renderAll(){ drawRoster(); renderChips(); renderRank(); renderServe(); renderHist(); renderLog(); livePreview(); }
 
 /* ---------------- form ---------------- */
 const isDoubles=()=>$('format').value==='doubles';
-const sides=()=>isDoubles()
-  ? {a:[$('a1').value,$('a2').value], b:[$('b1').value,$('b2').value]}
-  : {a:[$('a1').value], b:[$('b1').value]};
+const sides=()=>({a:teamOf('a'), b:teamOf('b')});
 function livePreview(){
   const {a,b}=sides(), {S}=compute('overall');
-  if([...a,...b].some(p=>!p)){$('preview').textContent='';return;}
+  if(a.length<cap()||b.length<cap()){$('preview').textContent='';return;}
   const r=arr=>arr.reduce((s,p)=>s+(S[p]?S[p].r:BASE),0)/arr.length;
   $('preview').textContent=`Side A win probability: ${Math.round(expected(r(a),r(b))*100)}%`;
 }
-function syncFormat(){ document.querySelectorAll('.p2A,.p2B').forEach(e=>e.hidden=!isDoubles()); livePreview(); }
+function syncFormat(){
+  // Switching format changes how many players fit per side (2 vs 1). Any
+  // extra picks beyond the new cap are dropped rather than left dangling —
+  // e.g. going doubles→singles with 2 players on Side A keeps only the first.
+  const n=cap();
+  for(const side of ['a','b']) teamOf(side).slice(n).forEach(name=>delete pick[name]);
+  drawRoster(); livePreview();
+}
 function setServe(s){
   serve=s;
   $('srvA').classList.toggle('on',s==='a'); $('srvB').classList.toggle('on',s==='b');
@@ -726,6 +755,10 @@ const msg=(t,ok)=>$('matchMsg').innerHTML=t?`<div class="msg ${ok?'':'bad'}">${e
 $('save').onclick=async()=>{
   if(busy) return;
   const {a,b}=sides();
+  if(a.length<cap()||b.length<cap()){
+    msg(`Pick ${cap()} player${cap()>1?'s':''} for each side first.`,false);
+    return;
+  }
   const rec=$('recorder').value.trim();
   if(rec.length<2){
     msg('Put your name in "Recorded by" — every match needs to say who entered it.',false);
@@ -740,6 +773,7 @@ $('save').onclick=async()=>{
       format:isDoubles()?'doubles':'singles', a,b, sa,sb, serve,
       recorder:rec});
     $('sa').value=''; $('sb').value='';
+    pick={};
     msg('Match saved — everyone\u2019s ratings updated.',true);
     renderAll();
   }catch(e){ msg(e.message,false); }
@@ -809,8 +843,6 @@ $('doImport').onclick=async()=>{
 $('format').onchange=syncFormat;
 $('rankMode').onchange=renderRank;
 $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
-document.querySelectorAll('.pick').forEach(s=>s.onchange=()=>{ fillSelects(); livePreview(); });
-$('playerFilter').oninput=()=>fillSelects();
 $('recorder').oninput=e=>{
   localStorage.setItem('pbelo_me',e.target.value);
 };
