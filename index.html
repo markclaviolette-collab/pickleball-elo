@@ -174,7 +174,7 @@
           </select></div>
         <div><label>Date</label><input type="date" id="mdate"></div>
         <div><label>Game to</label><select id="target"><option>11</option><option>15</option><option>21</option></select></div>
-        <div><label>Recorded by <span style="color:var(--blue)">*</span></label><select id="recorder" required><option value="">— pick who's entering this —</option></select></div>
+        <div><label>Recorded by <span style="color:var(--blue)">*</span></label><select id="recorder" required><option value="">Player</option></select></div>
       </div>
 
       <div class="row" style="margin-bottom:8px">
@@ -731,7 +731,7 @@ function renderAll(){ drawRoster(); fillRecorder(); renderChips(); renderRank();
 /* ---- recorder: dropdown of players, remembers last choice ---- */
 function fillRecorder(){
   const s=$('recorder'), keep=s.value||localStorage.getItem('pbelo_me')||'';
-  s.innerHTML='<option value="">— pick who\u2019s entering this —</option>'+
+  s.innerHTML='<option value="">Player</option>'+
     db.players.map(p=>`<option${p===keep?' selected':''}>${esc(p)}</option>`).join('');
   // If the remembered name was removed from the roster, fall back to
   // nothing selected rather than silently keeping a stale, invalid value.
