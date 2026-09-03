@@ -174,7 +174,7 @@
           </select></div>
         <div><label>Date</label><input type="date" id="mdate"></div>
         <div><label>Game to</label><select id="target"><option>11</option><option>15</option><option>21</option></select></div>
-        <div><label>Recorded by <span style="color:var(--blue)">*</span></label><input id="recorder" placeholder="your name" required></div>
+        <div><label>Recorded by <span style="color:var(--blue)">*</span></label><select id="recorder" required><option value="">— pick who's entering this —</option></select></div>
       </div>
 
       <div class="row" style="margin-bottom:8px">
@@ -726,7 +726,17 @@ function renderLog(){
         ${e.detail?' — '+esc(e.detail):''}</div></div>`;
   }).join('');
 }
-function renderAll(){ drawRoster(); renderChips(); renderRank(); renderServe(); renderHist(); renderLog(); livePreview(); }
+function renderAll(){ drawRoster(); fillRecorder(); renderChips(); renderRank(); renderServe(); renderHist(); renderLog(); livePreview(); }
+
+/* ---- recorder: dropdown of players, remembers last choice ---- */
+function fillRecorder(){
+  const s=$('recorder'), keep=s.value||localStorage.getItem('pbelo_me')||'';
+  s.innerHTML='<option value="">— pick who\u2019s entering this —</option>'+
+    db.players.map(p=>`<option${p===keep?' selected':''}>${esc(p)}</option>`).join('');
+  // If the remembered name was removed from the roster, fall back to
+  // nothing selected rather than silently keeping a stale, invalid value.
+  if(s.value!==keep) localStorage.removeItem('pbelo_me');
+}
 
 /* ---------------- form ---------------- */
 const isDoubles=()=>$('format').value==='doubles';
@@ -759,9 +769,9 @@ $('save').onclick=async()=>{
     msg(`Pick ${cap()} player${cap()>1?'s':''} for each side first.`,false);
     return;
   }
-  const rec=$('recorder').value.trim();
-  if(rec.length<2){
-    msg('Put your name in "Recorded by" — every match needs to say who entered it.',false);
+  const rec=$('recorder').value;
+  if(!rec){
+    msg('Pick who\u2019s entering this match in "Recorded by".',false);
     $('recorder').focus(); return;
   }
   const sa=parseInt($('sa').value), sb=parseInt($('sb').value);
@@ -843,11 +853,10 @@ $('doImport').onclick=async()=>{
 $('format').onchange=syncFormat;
 $('rankMode').onchange=renderRank;
 $('srvA').onclick=()=>setServe('a'); $('srvB').onclick=()=>setServe('b');
-$('recorder').oninput=e=>{
-  localStorage.setItem('pbelo_me',e.target.value);
+$('recorder').onchange=e=>{
+  if(e.target.value) localStorage.setItem('pbelo_me',e.target.value);
+  else localStorage.removeItem('pbelo_me');
 };
-$('recorder').value=localStorage.getItem('pbelo_me')||'';
-$('recorder').oninput({target:$('recorder')});
 $('mdate').value=new Date().toISOString().slice(0,10);
 syncFormat(); setServe('a'); checkAuth();
 </script>
